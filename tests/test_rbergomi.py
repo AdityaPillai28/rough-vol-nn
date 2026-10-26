@@ -10,6 +10,7 @@ import torch
 
 from roughvol.bs import black_np
 from roughvol.rbergomi import RoughBergomiMC, hybrid_kernel
+from roughvol.utils import get_device
 
 MATS = np.array([0.02, 0.1, 0.5, 1.0])
 Z = np.array([-0.3, -0.1, 0.0, 0.1, 0.25])
@@ -18,7 +19,7 @@ K_GRID = Z[None, :] * np.sqrt(MATS)[:, None]
 
 @pytest.fixture(scope="module")
 def mc():
-    dev = "cuda" if torch.cuda.is_available() else "cpu"
+    dev = get_device("auto")
     return RoughBergomiMC(MATS, steps_per_year=200, device=dev)
 
 
@@ -54,9 +55,10 @@ def test_antithetic_pairs(mc):
 
 
 def test_forward_variance_is_flat(mc):
-    # E[V_t] = xi0 on the grid by construction of the compensator.
+    # E[V_t] = xi0 on the grid by construction of the compensator. V is lognormal with
+    # log-variance eta^2 t^(2H); a moderate eta keeps the sample SE itself reliable.
     gen = torch.Generator(device=mc.device).manual_seed(5)
-    V = mc.simulate(0.07, 2.5, 0.04, 40000, gen)["V"].double()
+    V = mc.simulate(0.07, 1.2, 0.04, 100000, gen)["V"].double()
     m, se = V.mean(0), V.std(0) / np.sqrt(V.shape[0])
     z = ((m - 0.04) / se)[1:].abs()
     assert z.max() < 5.0  # 200 correlated grid points, so allow a wide band

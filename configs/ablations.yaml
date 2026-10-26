@@ -1,0 +1,12 @@
+# Ablations of the Monte Carlo pricer (cheap; run as part of `make eval`).
+seed: 31
+n_param_sets: 6           # random parameter sets from the training box (plus one rough corner)
+
+discretisation:
+  # Time steps per year; each must make every grid maturity an integer number of steps.
+  steps_per_year: [100, 200, 500, 1000, 2000]
+  n_paths: 160000
+  path_batch: 20000
+
+estimator:
+  n_paths: 40000          # same as the training labels

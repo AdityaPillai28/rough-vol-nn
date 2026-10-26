@@ -10,7 +10,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = ROOT / "configs"
-SECTIONS = ("data", "surrogate", "calibration", "heston", "market")
+SECTIONS = ("data", "surrogate", "calibration", "heston", "market", "ablations")
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

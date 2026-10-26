@@ -23,9 +23,13 @@ def set_seed(seed: int) -> None:
     os.environ["PYTHONHASHSEED"] = str(seed)
 
 
+def cuda_ok() -> bool:
+    return torch.cuda.is_available() and torch.cuda.device_count() > 0
+
+
 def get_device(name: str = "auto") -> torch.device:
     if name == "auto":
-        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        return torch.device("cuda" if cuda_ok() else "cpu")
     return torch.device(name)
 
 
@@ -77,8 +81,8 @@ def load_json(path: str | Path) -> dict[str, Any]:
 
 
 def hardware_info() -> dict[str, Any]:
-    info: dict[str, Any] = {"torch": torch.__version__, "cuda": torch.cuda.is_available()}
-    if torch.cuda.is_available():
+    info: dict[str, Any] = {"torch": torch.__version__, "cuda": cuda_ok()}
+    if cuda_ok():
         info["gpu"] = torch.cuda.get_device_name(0)
     info["cpu_count"] = os.cpu_count()
     return info

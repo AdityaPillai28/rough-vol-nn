@@ -1,7 +1,8 @@
+import roughvol  # noqa: F401  (loads pyarrow before torch; see roughvol/__init__.py)
 import pytest
 import torch
 
-from roughvol.utils import set_seed
+from roughvol.utils import get_device, set_seed
 
 
 @pytest.fixture(autouse=True)
@@ -11,4 +12,4 @@ def _seed():
 
 @pytest.fixture(scope="session")
 def device() -> torch.device:
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return get_device("auto")
