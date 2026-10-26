@@ -7,7 +7,12 @@ lm:
   lambda0: 1.0e-2
   lambda_up: 10.0
   lambda_down: 0.3
-  tol: 1.0e-10
+  tol: 1.0e-8            # stop when an accepted step lowers the cost by < tol (relative)
+  lambda_max: 1.0e+5     # ... or when damping makes steps negligible
+  # Jacobian for single-surface CPU calibration: float64 central differences through the
+  # network (agrees with autodiff to ~1e-7, 8x faster on CPU). Batched GPU runs use autodiff.
+  jacobian_single: fd64
+  cpu_threads: 1         # tiny workloads: thread fan-out costs more than it saves
   n_starts: 4           # multi-start: params drawn uniformly in the box
 
 lbfgs:

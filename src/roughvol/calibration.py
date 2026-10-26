@@ -15,6 +15,7 @@ optional per-cell weights.
 
 from __future__ import annotations
 
+import copy
 import time
 from collections.abc import Callable
 
@@ -53,6 +54,8 @@ def lm_calibrate(
     tol: float = 1e-10,
     seed: int = 0,
     predict_fn: Callable[[torch.Tensor], torch.Tensor] | None = None,
+    jacobian: str = "autodiff",
+    lambda_max: float = 1e5,
 ) -> dict[str, np.ndarray]:
     """Calibrate B surfaces at once.
 
@@ -81,8 +84,24 @@ def lm_calibrate(
     def resid_single(uu, t, s):
         return (predict(lo_f + span * torch.sigmoid(uu[None]))[0] - t) * s
 
-    jac_fn = vmap(jacfwd(resid_single, argnums=0), in_dims=(0, 0, 0))
     res_fn = vmap(resid_single, in_dims=(0, 0, 0))
+    if jacobian == "fd64" and predict_fn is None:
+        # Central differences on a float64 copy of the (smooth, SiLU/ELU) network: agrees
+        # with autodiff to ~1e-7 relative and avoids torch's forward-mode overhead, which
+        # dominates for a single surface on CPU.
+        m64 = copy.deepcopy(model).double()
+        lo64, span64 = m64.lo, m64.hi - m64.lo
+        h = 1e-6
+        e4 = torch.eye(4, device=dev, dtype=torch.float64)
+
+        def jac_fn(uu, t, s):
+            x = uu.double()
+            X = torch.cat([x[None] + h * e4[:, None], x[None] - h * e4[:, None]]).reshape(-1, 4)
+            with torch.no_grad():
+                y = m64(lo64 + span64 * torch.sigmoid(X)).reshape(2, 4, len(x), -1)
+            return ((y[0] - y[1]) / (2 * h)).permute(1, 2, 0) * s.double()[..., None]
+    else:
+        jac_fn = vmap(jacfwd(resid_single, argnums=0), in_dims=(0, 0, 0))
 
     with torch.no_grad():
         r = res_fn(u, tgt_r, sw_r)
@@ -110,7 +129,9 @@ def lm_calibrate(
             cost = torch.where(accept, cost_new, cost)
             lam = torch.where(accept, lam * lambda_down, lam * lambda_up).clamp(1e-12, 1e12)
             n_iter += active.int()
-            active &= ~converged & (lam < 1e11)
+            # Stop once the cost no longer decreases, or the damping has grown so large that
+            # steps are negligible (lambda * diag(J^T J) >> J^T J).
+            active &= ~converged & (lam < lambda_max)
             if not active.any():
                 break
     with torch.no_grad():

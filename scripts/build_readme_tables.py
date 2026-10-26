@@ -137,17 +137,26 @@ def block_speed(r: Path) -> str:
     if s is None:
         return f"Calibration speed: {PENDING}."
     mc = s["mc_calibration"]
+    lm = s["lm_single_cpu_seconds"]
+    b = s.get("batched_gpu_seconds_per_surface")
+    batched = (
+        f"| LM through surrogate, batched on GPU | {secs(b)} | "
+        f"2,000 surfaces in one call; speed-up {s['speedup_mc_over_batched']:,.0f}x |\n"
+        if b
+        else ""
+    )
     return (
         "| calibration | wall-clock per surface | notes |\n|---|---|---|\n"
-        f"| LM through surrogate (CPU, 1 surface) | {secs(s['lm_single_cpu_seconds']['median'])} "
-        f"| median of {s['lm_single_cpu_seconds']['n']}, {s['lm_single_cpu_seconds']['n_starts']} "
-        "starts |\n"
+        f"| LM through surrogate (CPU, 1 surface) | {secs(lm['median'])} "
+        f"| median of {lm['n']}, {lm['n_starts']} starts, {lm.get('cpu_threads', '?')} thread, "
+        f"{lm.get('jacobian', 'autodiff')} Jacobian |\n" + batched + ""
         f"| L-BFGS-B through surrogate (CPU) | {secs(s['lbfgs_single_cpu_seconds']['median'])} "
         f"| median of {s['lbfgs_single_cpu_seconds']['n']} |\n"
         f"| Monte Carlo in the loop ({mc['device']}, {mc['n_paths']:,} paths) | "
         f"{secs(mc['median_seconds'])} | median of {len(mc['runs'])}, "
         f"{mc['median_nfev']:.0f} pricer calls |\n"
-        f"| **speed-up (MC / surrogate LM)** | **{s['speedup_mc_over_lm']:,.0f}x** | |"
+        "| **speed-up (MC / single-surface surrogate LM)** | "
+        f"**{s['speedup_mc_over_lm']:,.0f}x** | |"
     )
 
 

@@ -54,3 +54,14 @@ def test_lbfgs_self_consistency():
     res = lbfgs_calibrate(s, target, n_starts=4)
     assert res["rmse"] < 1e-4
     assert np.all((res["theta"] >= LO) & (res["theta"] <= HI))
+
+
+def test_lm_fd64_jacobian_matches_autodiff():
+    s = _toy_surrogate(3)
+    rng = np.random.default_rng(1)
+    theta = LO + (HI - LO) * (0.1 + 0.8 * rng.random((8, 4)))
+    target = s.predict(theta)
+    a = lm_calibrate(s, target, n_starts=3, max_iter=200, jacobian="autodiff")
+    b = lm_calibrate(s, target, n_starts=3, max_iter=200, jacobian="fd64")
+    assert np.median(b["rmse"]) < 1e-5
+    np.testing.assert_allclose(a["rmse"], b["rmse"], atol=1e-5)

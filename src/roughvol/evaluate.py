@@ -50,6 +50,7 @@ def _lm_kwargs(cfg: dict) -> dict:
         "lambda_up": c["lambda_up"],
         "lambda_down": c["lambda_down"],
         "tol": c["tol"],
+        "lambda_max": c["lambda_max"],
     }
 
 
@@ -256,11 +257,14 @@ def eval_speed(cfg: dict) -> dict:
     grid = Grid.from_config(cfg["data"])
     cpu_model = load_surrogate(cfg, ccfg["model"], "cpu")
     n_single = min(int(ccfg["speed"]["n_single"]), len(ref["iv"]))
+    single = {**_lm_kwargs(cfg), "jacobian": ccfg["lm"]["jacobian_single"]}
+    threads = torch.get_num_threads()
+    torch.set_num_threads(int(ccfg["lm"]["cpu_threads"]))
     t_lm, t_lb = [], []
     for i in range(n_single):
         tgt = ref["iv"][i : i + 1].astype(float)
         t0 = time.perf_counter()
-        lm_calibrate(cpu_model, tgt, seed=i, **_lm_kwargs(cfg))
+        lm_calibrate(cpu_model, tgt, seed=i, **single)
         t_lm.append(time.perf_counter() - t0)
         t0 = time.perf_counter()
         lbfgs_calibrate(
@@ -271,6 +275,7 @@ def eval_speed(cfg: dict) -> dict:
             seed=i,
         )
         t_lb.append(time.perf_counter() - t0)
+    torch.set_num_threads(threads)
 
     mcc = ccfg["mc_calibration"]
     mc = _mc(cfg, device)
@@ -290,7 +295,7 @@ def eval_speed(cfg: dict) -> dict:
             seed=1234 + i,
             path_batch=int(cfg["data"]["mc"]["path_batch"]),
         )
-        s = lm_calibrate(cpu_model, tgt[None], seed=i, **_lm_kwargs(cfg))
+        s = lm_calibrate(cpu_model, tgt[None], seed=i, **single)
         true = ref["params"][i].astype(float)
         mc_runs.append(
             {
@@ -316,6 +321,12 @@ def eval_speed(cfg: dict) -> dict:
         if device.type == "cuda":
             torch.cuda.synchronize()
         t_price = time.perf_counter() - t0
+    rec = resolve(cfg["results_dir"]) / "calibration_recovery.json"
+    batched = None
+    if rec.exists():
+        from roughvol.utils import load_json
+
+        batched = load_json(rec)["models"][ccfg["model"]]["lm_noisy"]["batched_seconds_per_surface"]
     out = {
         "surrogate_model": ccfg["model"],
         "lm_single_cpu_seconds": {
@@ -323,6 +334,8 @@ def eval_speed(cfg: dict) -> dict:
             "p90": float(np.quantile(t_lm, 0.9)),
             "n": n_single,
             "n_starts": int(ccfg["lm"]["n_starts"]),
+            "jacobian": single["jacobian"],
+            "cpu_threads": int(ccfg["lm"]["cpu_threads"]),
         },
         "lbfgs_single_cpu_seconds": {
             "median": float(np.median(t_lb)),
@@ -338,6 +351,8 @@ def eval_speed(cfg: dict) -> dict:
         },
         "mc_single_surface_price_seconds": t_price,
         "speedup_mc_over_lm": float(np.median(t_mc) / np.median(t_lm)),
+        "batched_gpu_seconds_per_surface": batched,
+        "speedup_mc_over_batched": float(np.median(t_mc) / batched) if batched else None,
         "hardware": hardware_info(),
     }
     save_json(out, Path(cfg["results_dir"]) / "calibration_speed.json")

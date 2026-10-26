@@ -118,9 +118,12 @@ python -m roughvol eval --market path/to/chain.csv
 * **Flat forward variance.** One ξ₀ cannot match a market ATM term structure that is not
   flat; on real data part of the residual is term-structure error, not a failure of
   roughness. Piecewise-constant ξ₀(t) is the standard fix (not implemented).
-* **The surrogate learns the discretised model.** Labels use 500 steps/year; the
-  discretisation bias (ablation above) is inherited by the network and is largest at the
-  shortest maturity and smallest H.
+* **The surrogate learns the discretised model, and that bias dominates.** Labels use
+  500 steps/year. The time-step ablation above shows the bias against 2,000 steps/year is
+  larger than the Monte Carlo standard error, largest at the shortest maturity and
+  smallest H. The surrogate's error *relative to the 500-step model* is below the MC noise
+  floor, but its error relative to the continuous-time model is set by the time step.
+  The next data run should spend its budget on more steps, not more paths.
 * **Fixed domain.** Quotes with z = k/√T outside [−0.42, 0.28] or T outside [0.02, 1.5] are
   dropped, not extrapolated. Weekly options under 7 days are therefore out of scope.
 * **H–η trade-off.** Skew level depends on η·√(2H)/((H+½)(H+3/2)) while only its term

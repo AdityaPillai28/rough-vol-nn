@@ -1,0 +1,4 @@
+{
+  "status": "skipped",
+  "reason": "no option-chain CSV supplied (pass --market path/to/chain.csv or set market.csv_path); real-data calibration SKIPPED. No market data is invented."
+}

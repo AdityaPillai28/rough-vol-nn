@@ -298,7 +298,23 @@ Objective: Σ_cells w (σ_model(θ) − σ_market)², over quoted cells only.
   thousands of surfaces are calibrated in one batched loop on the GPU;
 * **Marquardt scaling** (λ · diag(JᵀJ) rather than λ · I): makes the step invariant to
   per-parameter rescaling, including the sigmoid's vanishing slope near the box edges;
-* multi-start (box centre + random starts), best cost kept.
+* multi-start (box centre + random starts), best cost kept;
+* stopping: an accepted step that lowers the cost by less than `tol` (relative), or a
+  damping λ above `lambda_max` (steps have become negligible). The first version stopped
+  only on accepted steps, so a converged start kept iterating through rejected steps
+  until λ reached 1e11 — a 2–3× waste found by profiling.
+
+**Jacobian on CPU, single surface.** Forward-mode autodiff in torch (`jacfwd`) costs
+~6 ms per call for this tiny network on CPU — pure framework overhead (a plain forward
+pass is 0.2 ms). For single-surface calibration we therefore use **float64 central
+differences through the network** (8 extra rows in one batched forward pass,
+h = 1e−6). The network is C^∞ (SiLU/ELU), so the truncation error is O(h²) ≈ 1e−12 and
+rounding error in float64 ≈ 1e−10/h ≈ 1e−10; measured agreement with autodiff is ~3e−8
+absolute (5e−7 relative) and calibrated parameters are identical to 4 digits, at 8× less
+wall-clock. Batched GPU calibration and the market interpolation path keep exact
+autodiff (`jacobian: autodiff`), where its cost is amortised. Rejected alternatives:
+reverse-mode with batched cotangents (4 ms — still overhead-bound), float32 finite
+differences (1e−3 relative error).
 
 **L-BFGS-B** (scipy) on θ with the box as native bounds and autodiff gradients — the
 general-purpose alternative; per surface.
@@ -375,9 +391,13 @@ Heston (forward-normalised): dv = κ(θ − v)dt + σ√v dW, d⟨B, W⟩ = ρ d
   flat; on real data the rBergomi residuals will partly be term-structure error, not
   roughness error. The standard fix is a piecewise-constant ξ_0(t) (8 more inputs);
   the grid design already supports it.
-* **Discretisation bias is learned.** The surrogate learns the 500-step hybrid scheme,
-  not the continuous model. Its size is measured by the ablation, and is
-  largest for the shortest maturity and smallest H.
+* **Discretisation bias is learned — and it is larger than the MC noise.** The surrogate
+  learns the 500-step hybrid scheme, not the continuous model. The time-step ablation
+  (README) shows the 500-step bias relative to 2,000 steps exceeds the Monte Carlo
+  standard error of the comparison, and is largest at the shortest maturity and smallest
+  H. In other words, at this budget more *time steps* would buy more accuracy than more
+  *paths*; the next data run should use 1,000+ steps/year, or Richardson extrapolation
+  across two resolutions.
 * **Grid domain.** Quotes outside z ∈ [−0.42, 0.28] or T ∉ [0.02, 1.5] cannot be priced
   by the surrogate; extrapolation is deliberately refused.
 * **Constant rates per expiry.** The implied discount factor is per expiry; no term
