@@ -19,3 +19,5 @@ market_data/
 
 .streamlit/secrets.toml
 Prompt.txt
+
+.claude/

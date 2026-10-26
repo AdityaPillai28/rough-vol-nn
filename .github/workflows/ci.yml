@@ -31,3 +31,5 @@ jobs:
           start=$(date +%s)
           python -m roughvol all --quick
           echo "quick pipeline took $(( $(date +%s) - start ))s"
+      - name: README numbers match results/*.json
+        run: python scripts/build_readme_tables.py --check
