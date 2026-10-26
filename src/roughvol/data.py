@@ -158,11 +158,13 @@ def merge_chunks(cfg: dict, fp: str, n_chunks: int) -> dict:
         return {"complete": False, "missing_chunks": len(missing)}
     parts: dict[str, list[np.ndarray]] = {}
     total_seconds = 0.0
+    chunk_seconds = []
     for f in files:
         with np.load(f) as z:
             for key in ("params", "index", "iv", "iv_se", "price", "price_se", "forward"):
                 parts.setdefault(key, []).append(z[key])
             total_seconds += float(z["seconds"])
+            chunk_seconds.append(float(z["seconds"]) / len(z["index"]))
     data = {k: np.concatenate(v) for k, v in parts.items()}
     assert np.array_equal(data["index"], np.arange(len(data["index"])))
     n = len(data["index"])
@@ -199,6 +201,10 @@ def merge_chunks(cfg: dict, fp: str, n_chunks: int) -> dict:
         "forward_abs_dev_mean": float(np.mean(np.abs(data["forward"] - 1.0))),
         "gpu_seconds_total": total_seconds,
         "ms_per_sample": 1e3 * total_seconds / n,
+        # Wall-clock per chunk includes any time the machine was suspended; the median
+        # over chunks is robust to that and is the number to quote.
+        "ms_per_sample_median_chunk": 1e3 * float(np.median(chunk_seconds)),
+        "hours_at_median_rate": float(np.median(chunk_seconds)) * n / 3600,
         "hardware": hardware_info(),
     }
     save_json(summary, Path(cfg["results_dir"]) / "data_generation.json")

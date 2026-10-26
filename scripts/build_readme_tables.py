@@ -62,8 +62,8 @@ def block_data(r: Path) -> str:
         f"| estimator | {d['estimator']} (conditional on W, antithetic) |\n"
         f"| mean relative IV standard error of a label | {pct(d['rel_iv_se_mean'], 3)} |\n"
         f"| failed IV inversions | {pct(d['nan_fraction'], 3)} |\n"
-        f"| GPU pricing time | {d['gpu_seconds_total'] / 3600:.2f} h "
-        f"({d['ms_per_sample']:.1f} ms per surface) on {h.get('gpu', 'CPU')} |"
+        f"| GPU pricing time | {d['ms_per_sample_median_chunk']:.1f} ms per surface (median "
+        f"over chunks) → {d['hours_at_median_rate']:.2f} h for the set on {h.get('gpu', 'CPU')} |"
     )
 
 
