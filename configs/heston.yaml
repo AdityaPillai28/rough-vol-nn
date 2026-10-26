@@ -1,0 +1,22 @@
+# Baseline: Heston priced with the COS method (Fang & Oosterlee 2008).
+cos:
+  n_terms: 512
+  L: 12.0               # truncation range in units of the cumulant scale
+
+bounds:                 # v0, kappa, theta, sigma, rho
+  lower: [0.0005, 0.05, 0.0005, 0.05, -0.99]
+  upper: [0.5, 15.0, 0.5, 5.0, 0.5]
+
+calibration:
+  n_surfaces: 32        # reference rBergomi surfaces re-fitted with Heston
+  n_starts: 3
+  max_nfev: 400
+
+skew:
+  # Dense maturity grid for the ATM-skew term structure (fresh MC runs).
+  maturities: [0.004, 0.008, 0.012, 0.02, 0.03, 0.05, 0.08, 0.1, 0.15, 0.25, 0.4, 0.6, 1.0]
+  steps_per_year: 2500
+  n_paths: 400000
+  path_batch: 20000
+  dz: 0.05              # finite-difference half-width in z = k / sqrt(T)
+  params: {H: 0.1, eta: 1.9, rho: -0.9, xi0: 0.04}

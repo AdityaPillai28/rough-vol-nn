@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Generated data (large; regenerate with `make data`)
+data/
+# --quick outputs (CI)
+results/quick/
+*.tmp
+
+# Market data supplied by the user is never committed
+market_data/
+*.local.csv
+
+.streamlit/secrets.toml
+Prompt.txt

@@ -1,0 +1,19 @@
+# Real index-option chain. Nothing here is invented: if csv_path is null or the
+# file is missing, the market step is skipped with a message.
+csv_path: null
+format: auto            # auto | canonical | nse_bhavcopy | nse_udiff
+valuation_date: null    # YYYY-MM-DD; inferred from the file when possible
+underlying: NIFTY
+
+filters:
+  min_days: 3           # drop expiries closer than this (calendar days)
+  max_years: 1.6
+  min_price: 0.5        # in index points (NIFTY tick is 0.05)
+  max_rel_spread: 0.25  # (ask - bid) / mid, applied when bid/ask exist
+  min_volume: 1         # contracts traded, applied when volume exists
+  min_open_interest: 0
+  z_range: [-0.42, 0.28]  # keep quotes inside the surrogate's strike domain
+  min_quotes_per_expiry: 5
+
+parity:
+  n_strikes: 8          # strikes closest to the money used to regress C - P on K

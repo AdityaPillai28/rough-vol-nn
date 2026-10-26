@@ -1,0 +1,27 @@
+# Step 2: neural-network surrogates of the pricing map (H, eta, rho, xi0) -> IV grid.
+seed: 1234
+device: auto            # auto | cpu | cuda
+
+models:
+  mlp:
+    # Grid-based network of Horvath, Muguruza & Tomas (2021): 3 x 30 ELU.
+    kind: mlp
+    hidden: [30, 30, 30]
+    activation: elu
+  resmlp:
+    kind: resmlp
+    width: 128
+    n_blocks: 3
+    activation: silu
+
+train:
+  batch_size: 256
+  epochs: 300
+  lr: 1.0e-3
+  weight_decay: 0.0
+  lr_patience: 15       # ReduceLROnPlateau on validation loss
+  lr_factor: 0.5
+  early_stop_patience: 40
+  min_lr: 1.0e-6
+
+out_dir: results/models

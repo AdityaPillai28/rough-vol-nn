@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools==75.6.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rough-vol-nn"
+version = "0.1.0"
+description = "Deep calibration of the rough Bergomi model: learn the pricing map with a neural network, then calibrate through it."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = { text = "MIT" }
+authors = [{ name = "Aditya" }]
+dependencies = [
+    "numpy==2.1.3",
+    "scipy==1.17.1",
+    "pandas==3.0.2",
+    "matplotlib==3.10.9",
+    "plotly==6.7.0",
+    "pyyaml==6.0.3",
+    "tqdm==4.70.0",
+    # torch is pinned here; on CPU-only machines install it first from the
+    # PyTorch CPU index (see README / CI).
+    "torch==2.5.1",
+]
+
+[project.optional-dependencies]
+app = ["streamlit==1.57.0"]
+dev = [
+    "pytest==9.0.3",
+    "ruff==0.14.3",
+]
+demo = ["playwright==1.55.0", "imageio==2.37.4", "pillow==12.2.0"]
+
+[project.scripts]
+roughvol = "roughvol.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts", "app"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "NPY", "RUF"]
+ignore = ["E741", "RUF001", "RUF002", "RUF003"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = ["slow: long-running statistical tests", "gpu: requires CUDA"]

@@ -1,0 +1,24 @@
+# Step 3: calibration through the surrogate.
+seed: 99
+model: resmlp           # which trained surrogate to calibrate through
+
+lm:
+  max_iter: 100
+  lambda0: 1.0e-2
+  lambda_up: 10.0
+  lambda_down: 0.3
+  tol: 1.0e-10
+  n_starts: 4           # multi-start: params drawn uniformly in the box
+
+lbfgs:
+  max_iter: 300
+  n_starts: 4
+
+recovery:
+  n_surfaces: 2000      # held-out test surfaces (MC labels, i.e. realistic noise)
+
+mc_calibration:
+  # Calibration with the Monte Carlo pricer in the loop, for the speed comparison.
+  n_surfaces: 5
+  n_paths: 40000
+  max_nfev: 60
