@@ -1,7 +1,7 @@
 # Baseline: Heston priced with the COS method (Fang & Oosterlee 2008).
 cos:
   n_terms: 512
-  L: 12.0               # truncation range in units of the cumulant scale
+  L: 16.0               # truncation half-width in standard deviations of ln(S_T/F)
 
 bounds:                 # v0, kappa, theta, sigma, rho
   lower: [0.0005, 0.05, 0.0005, 0.05, -0.99]
@@ -20,3 +20,4 @@ skew:
   path_batch: 20000
   dz: 0.05              # finite-difference half-width in z = k / sqrt(T)
   params: {H: 0.1, eta: 1.9, rho: -0.9, xi0: 0.04}
+  H_values: [0.05, 0.1, 0.2, 0.3]   # skew term structure is computed for each H

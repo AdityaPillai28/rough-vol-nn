@@ -16,6 +16,10 @@ lbfgs:
 
 recovery:
   n_surfaces: 2000      # held-out test surfaces (MC labels, i.e. realistic noise)
+  n_lbfgs: 200          # L-BFGS-B is run sequentially on this many of them
+
+speed:
+  n_single: 50          # single-surface CPU calibrations timed one by one
 
 mc_calibration:
   # Calibration with the Monte Carlo pricer in the loop, for the speed comparison.

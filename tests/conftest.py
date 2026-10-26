@@ -1,3 +1,4 @@
+# ruff: noqa: I001  (roughvol must be imported first: it loads pyarrow before torch)
 import roughvol  # noqa: F401  (loads pyarrow before torch; see roughvol/__init__.py)
 import pytest
 import torch
